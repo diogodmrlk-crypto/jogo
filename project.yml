@@ -1,0 +1,34 @@
+name: LARP
+
+options:
+  bundleIdPrefix: com.indie
+  deploymentTarget:
+    iOS: "15.0"
+
+targets:
+  LARP:
+    type: application
+    platform: iOS
+    deploymentTarget: "15.0"
+
+    sources:
+      - path: LA_RP
+        excludes:
+          - Web
+
+    resources:
+      - path: LA_RP/Web
+        type: folder
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.indie.larp
+        PRODUCT_NAME: "LA RP"
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: "LA RP"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIRequiresFullScreen: YES
+        CODE_SIGNING_ALLOWED: NO
+        IPHONEOS_DEPLOYMENT_TARGET: "15.0"
