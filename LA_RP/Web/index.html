@@ -10,116 +10,110 @@
     <link rel="stylesheet" href="style.css">
 
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
     <script src="game.js" defer></script>
 </head>
 
 <body>
+    <div id="loadingScreen">
+        <div class="loading-skyline">
+            <div class="sky-building b1"></div>
+            <div class="sky-building b2"></div>
+            <div class="sky-building b3"></div>
+            <div class="sky-building b4"></div>
+            <div class="sky-building b5"></div>
+            <div class="palm-silhouette">♣</div>
+        </div>
 
-<div id="loadingScreen">
-    <div class="loading-skyline">
-        <div class="sky-building b1"></div>
-        <div class="sky-building b2"></div>
-        <div class="sky-building b3"></div>
-        <div class="sky-building b4"></div>
-        <div class="sky-building b5"></div>
-        <div class="palm-silhouette">♣</div>
+        <div class="loading-content">
+            <div class="loading-kicker">WELCOME TO CALIFORNIA</div>
+            <div class="loading-title">LOS ANGELES</div>
+            <div class="loading-subtitle">ROLEPLAY</div>
+
+            <div class="loading-description">
+                SUA HISTÓRIA. SUA CIDADE. SUAS ESCOLHAS.
+            </div>
+
+            <div class="loading-bottom">
+                <div class="loading-status" id="loadingStatus">
+                    PREPARANDO A CIDADE...
+                </div>
+
+                <div class="loading-track">
+                    <div id="loadingProgress"></div>
+                </div>
+
+                <div class="loading-percent" id="loadingPercent">0%</div>
+            </div>
+        </div>
+
+        <div class="loading-version">LA RP • MOBILE</div>
     </div>
 
-    <div class="loading-content">
-        <div class="loading-kicker">WELCOME TO CALIFORNIA</div>
-        <div class="loading-title">LOS ANGELES</div>
-        <div class="loading-subtitle">ROLEPLAY</div>
+    <div id="game">
+        <canvas id="renderCanvas"></canvas>
 
-        <div class="loading-description">
-            SUA HISTÓRIA. SUA CIDADE. SUAS ESCOLHAS.
-        </div>
+        <div id="hud">
+            <div class="topbar">
+                <div class="brand">
+                    <strong>LOS ANGELES</strong>
+                    <span>ROLEPLAY</span>
+                </div>
 
-        <div class="loading-bottom">
-            <div class="loading-status" id="loadingStatus">
-                PREPARANDO A CIDADE...
+                <div class="money">
+                    <span>DINHEIRO</span>
+                    <strong>$ 25.000</strong>
+                </div>
+
+                <div class="player-info">
+                    <strong>JOGADOR</strong>
+                    <span>ONLINE</span>
+                </div>
             </div>
 
-            <div class="loading-track">
-                <div id="loadingProgress"></div>
+            <div class="status">
+                <div class="status-item">
+                    <span>♥ VIDA</span>
+                    <div class="bar"><div class="health-fill"></div></div>
+                </div>
+
+                <div class="status-item">
+                    <span>FOME</span>
+                    <div class="bar"><div class="hunger-fill"></div></div>
+                </div>
+
+                <div class="status-item">
+                    <span>SEDE</span>
+                    <div class="bar"><div class="thirst-fill"></div></div>
+                </div>
             </div>
 
-            <div class="loading-percent" id="loadingPercent">
-                0%
+            <div class="minimap">
+                <canvas id="mapCanvas" width="160" height="160"></canvas>
+                <span>LOS ANGELES</span>
+            </div>
+
+            <div id="toast"></div>
+
+            <div class="joystick-area" id="joystick">
+                <div class="joystick-base">
+                    <div class="joystick-knob" id="joystickKnob"></div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="jumpButton">PULAR</button>
+                <button id="sprintButton">CORRER</button>
+                <button id="interactButton">AÇÃO</button>
+            </div>
+
+            <div class="look-area" id="lookArea"></div>
+
+            <div class="speedometer">
+                <strong id="speed">0</strong>
+                <span>KM/H</span>
             </div>
         </div>
     </div>
-
-    <div class="loading-version">LA RP • MOBILE</div>
-</div>
-
-<div id="game">
-
-    <canvas id="renderCanvas"></canvas>
-
-    <div id="hud">
-
-        <div class="topbar">
-            <div class="brand">
-                <strong>LOS ANGELES</strong>
-                <span>ROLEPLAY</span>
-            </div>
-
-            <div class="money">
-                <span>DINHEIRO</span>
-                <strong>$ 25.000</strong>
-            </div>
-
-            <div class="player-info">
-                <strong>JOGADOR</strong>
-                <span>ONLINE</span>
-            </div>
-        </div>
-
-        <div class="status">
-            <div class="status-item">
-                <span>♥ VIDA</span>
-                <div class="bar"><div class="health-fill"></div></div>
-            </div>
-
-            <div class="status-item">
-                <span>FOME</span>
-                <div class="bar"><div class="hunger-fill"></div></div>
-            </div>
-
-            <div class="status-item">
-                <span>SEDE</span>
-                <div class="bar"><div class="thirst-fill"></div></div>
-            </div>
-        </div>
-
-        <div class="minimap">
-            <canvas id="mapCanvas" width="160" height="160"></canvas>
-            <span>LOS ANGELES</span>
-        </div>
-
-        <div id="toast"></div>
-
-        <div class="joystick-area" id="joystick">
-            <div class="joystick-base">
-                <div class="joystick-knob" id="joystickKnob"></div>
-            </div>
-        </div>
-
-        <div class="actions">
-            <button id="jumpButton">PULAR</button>
-            <button id="sprintButton">CORRER</button>
-            <button id="interactButton">AÇÃO</button>
-        </div>
-
-        <div class="look-area" id="lookArea"></div>
-
-        <div class="speedometer">
-            <strong id="speed">0</strong>
-            <span>KM/H</span>
-        </div>
-
-    </div>
-</div>
-
 </body>
 </html>
