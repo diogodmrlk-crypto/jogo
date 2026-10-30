@@ -1,197 +1,234 @@
-const canvas = document.getElementById("renderCanvas");
+"use strict";
 
-const engine = new BABYLON.Engine(
-    canvas,
-    true,
-    {
-        preserveDrawingBuffer: true,
-        stencil: true,
-        antialias: true
-    }
-);
+const canvas = document.getElementById("renderCanvas");
+const loadingScreen = document.getElementById("loadingScreen");
+
+const progressBar = document.getElementById("loadingProgress");
+const progressText = document.getElementById("loadingPercent");
+const loadingStatus = document.getElementById("loadingStatus");
+
+function setLoading(value, message) {
+    const percent = Math.max(0, Math.min(100, Math.round(value)));
+    progressBar.style.width = percent + "%";
+    progressText.textContent = percent + "%";
+    loadingStatus.textContent = message;
+}
+
+function finishLoading() {
+    setLoading(100, "CIDADE PRONTA!");
+
+    setTimeout(() => {
+        loadingScreen.classList.add("hidden");
+    }, 500);
+}
+
+if (typeof BABYLON === "undefined") {
+    setLoading(100, "ERRO AO CARREGAR O MOTOR 3D");
+    throw new Error("Babylon.js não foi carregado.");
+}
+
+setLoading(8, "INICIANDO MOTOR 3D...");
+
+const engine = new BABYLON.Engine(canvas, true, {
+    antialias: true,
+    preserveDrawingBuffer: false,
+    stencil: true,
+    adaptToDeviceRatio: true
+});
 
 const scene = new BABYLON.Scene(engine);
-
-scene.clearColor = new BABYLON.Color4(
-    0.53, 0.76, 0.91, 1
-);
-
+scene.clearColor = new BABYLON.Color4(0.55, 0.76, 0.91, 1);
 scene.collisionsEnabled = true;
+scene.skipPointerMovePicking = true;
+
+setLoading(18, "CRIANDO LOS ANGELES...");
 
 // CÂMERA
 
 const camera = new BABYLON.FreeCamera(
-    "camera",
+    "thirdPersonCamera",
     new BABYLON.Vector3(0, 5, -10),
     scene
 );
 
 camera.minZ = 0.1;
-camera.fov = 0.9;
-
+camera.fov = 0.85;
 camera.inputs.clear();
 
-// ILUMINAÇÃO
+// LUZES
 
-const sunlight = new BABYLON.HemisphericLight(
-    "sun",
+const skyLight = new BABYLON.HemisphericLight(
+    "skyLight",
     new BABYLON.Vector3(0, 1, 0),
     scene
 );
 
-sunlight.intensity = 0.95;
+skyLight.intensity = 0.9;
 
-const directional = new BABYLON.DirectionalLight(
-    "directional",
-    new BABYLON.Vector3(-0.5, -1, 0.5),
+const sun = new BABYLON.DirectionalLight(
+    "sun",
+    new BABYLON.Vector3(-0.5, -1, 0.4),
     scene
 );
 
-directional.intensity = 0.6;
+sun.position = new BABYLON.Vector3(50, 100, -50);
+sun.intensity = 0.8;
 
 // MATERIAIS
 
-function material(name, color) {
+function makeMaterial(name, color, roughness = 1) {
     const mat = new BABYLON.StandardMaterial(name, scene);
     mat.diffuseColor = BABYLON.Color3.FromHexString(color);
+    mat.specularColor = new BABYLON.Color3(0.12, 0.12, 0.12);
+    mat.specularPower = 32;
     return mat;
 }
 
-const roadMat = material("road", "#34383d");
-const sidewalkMat = material("sidewalk", "#a9a9a9");
-const grassMat = material("grass", "#5c9a55");
-const whiteMat = material("white", "#eeeeee");
-const glassMat = material("glass", "#78a9c4");
-const playerMat = material("player", "#3b70e8");
-const skinMat = material("skin", "#d7a47c");
-const palmMat = material("palm", "#795333");
-const leafMat = material("leaves", "#237b43");
+const materials = {
+    ground: makeMaterial("groundMat", "#82936D"),
+    road: makeMaterial("roadMat", "#34383D"),
+    sidewalk: makeMaterial("sidewalkMat", "#B7B4AD"),
+    line: makeMaterial("roadLineMat", "#E8D99A"),
+    glass: makeMaterial("glassMat", "#4C8199"),
+    palm: makeMaterial("palmMat", "#795333"),
+    leaves: makeMaterial("leavesMat", "#287343"),
+    skin: makeMaterial("skinMat", "#C58F6B"),
+    shirt: makeMaterial("shirtMat", "#315FD1"),
+    pants: makeMaterial("pantsMat", "#252C39"),
+    shoes: makeMaterial("shoesMat", "#17191E")
+};
+
+const buildingColors = [
+    "#B7AEA1",
+    "#929CA5",
+    "#D0C1AE",
+    "#777F89",
+    "#C3C8C7",
+    "#A69A91",
+    "#B8B9B1"
+];
 
 // CHÃO
 
 const ground = BABYLON.MeshBuilder.CreateGround(
     "ground",
-    {
-        width: 500,
-        height: 500
-    },
+    { width: 500, height: 500 },
     scene
 );
 
-ground.position.y = -0.15;
-ground.material = grassMat;
+ground.position.y = -0.12;
+ground.material = materials.ground;
 
 // ESTRADAS
 
-function createRoad(x, z, width, depth) {
-    const road = BABYLON.MeshBuilder.CreateBox(
-        "road",
-        {
-            width,
-            height: 0.12,
-            depth
-        },
+function box(name, width, height, depth, x, y, z, mat) {
+    const mesh = BABYLON.MeshBuilder.CreateBox(
+        name,
+        { width, height, depth },
         scene
     );
 
-    road.position.set(x, 0, z);
-    road.material = roadMat;
-    return road;
+    mesh.position.set(x, y, z);
+    mesh.material = mat;
+    return mesh;
 }
 
-createRoad(0, 0, 500, 18);
-createRoad(0, 0, 18, 500);
-createRoad(0, 75, 500, 14);
-createRoad(75, 0, 14, 500);
-createRoad(0, -75, 500, 14);
-createRoad(-75, 0, 14, 500);
+function createRoad(x, z, width, depth) {
+    box("road", width, 0.15, depth, x, 0, z, materials.road);
+}
+
+createRoad(0, 0, 500, 22);
+createRoad(0, 75, 500, 18);
+createRoad(0, -75, 500, 18);
+createRoad(75, 0, 18, 500);
+createRoad(-75, 0, 18, 500);
+
+// FAIXAS DAS RUAS
+
+for (let x = -230; x <= 230; x += 12) {
+    box("roadDash", 5, 0.025, 0.18, x, 0.09, 0, materials.line);
+    box("roadDash", 5, 0.025, 0.18, x, 0.09, 75, materials.line);
+    box("roadDash", 5, 0.025, 0.18, x, 0.09, -75, materials.line);
+}
+
+for (let z = -230; z <= 230; z += 12) {
+    box("roadDash", 0.18, 0.025, 5, 0, 0.09, z, materials.line);
+    box("roadDash", 0.18, 0.025, 5, 75, 0.09, z, materials.line);
+    box("roadDash", 0.18, 0.025, 5, -75, 0.09, z, materials.line);
+}
+
+// CALÇADAS
+
+for (let x = -225; x <= 225; x += 45) {
+    box("sidewalk", 35, 0.3, 3, x, 0.05, 13, materials.sidewalk);
+    box("sidewalk", 35, 0.3, 3, x, 0.05, -13, materials.sidewalk);
+    box("sidewalk", 3, 0.3, 35, 13, 0.05, x, materials.sidewalk);
+    box("sidewalk", 3, 0.3, 35, -13, 0.05, x, materials.sidewalk);
+}
 
 // PRÉDIOS
 
 function createBuilding(x, z, width, depth, height, color) {
-    const building = BABYLON.MeshBuilder.CreateBox(
-        "building",
-        {
-            width,
-            depth,
-            height
-        },
-        scene
-    );
-
-    building.position.set(
-        x,
-        height / 2,
-        z
-    );
-
-    building.material = material(
+    const mat = makeMaterial(
         "building_" + x + "_" + z,
         color
     );
 
-    building.checkCollisions = true;
+    const building = box(
+        "building",
+        width,
+        height,
+        depth,
+        x,
+        height / 2,
+        z,
+        mat
+    );
 
-    // Janelas na fachada frontal
-    const rows = Math.max(1, Math.floor(height / 4));
-    const cols = Math.max(1, Math.floor(width / 4));
+    // Janelas na frente do prédio
+    const rows = Math.max(2, Math.floor(height / 5));
+    const cols = Math.max(2, Math.floor(width / 5));
 
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
+            const wx = x - width / 2 + 2.5 + col * 5;
+            const wy = 3 + row * 5;
+            const wz = z - depth / 2 - 0.04;
 
-            const windowMesh = BABYLON.MeshBuilder.CreateBox(
+            if (wy > height - 1) continue;
+
+            box(
                 "window",
-                {
-                    width: 1.4,
-                    height: 1.5,
-                    depth: 0.08
-                },
-                scene
+                1.7,
+                1.8,
+                0.08,
+                wx,
+                wy,
+                wz,
+                materials.glass
             );
-
-            windowMesh.position.set(
-                x - width / 2 + 2 + col * 4,
-                2.5 + row * 4,
-                z - depth / 2 - 0.06
-            );
-
-            windowMesh.material = glassMat;
         }
     }
 
     return building;
 }
 
-// QUADRAS DA CIDADE
-
-const colors = [
-    "#b9b8b4",
-    "#8e9ca7",
-    "#d2c3ae",
-    "#777e8a",
-    "#c8d0d5",
-    "#b6a59c"
-];
+setLoading(34, "CONSTRUINDO PRÉDIOS...");
 
 for (let x = -180; x <= 180; x += 45) {
     for (let z = -180; z <= 180; z += 45) {
+        if (Math.abs(x) < 25 || Math.abs(z) < 25) continue;
 
-        if (
-            Math.abs(x) < 25 ||
-            Math.abs(z) < 25
-        ) continue;
-
-        const color = colors[
-            Math.floor(Math.random() * colors.length)
+        const height = 14 + Math.random() * 27;
+        const color = buildingColors[
+            Math.floor(Math.random() * buildingColors.length)
         ];
-
-        const height = 12 + Math.random() * 45;
 
         createBuilding(
             x,
             z,
-            25 + Math.random() * 8,
-            25 + Math.random() * 8,
+            25 + Math.random() * 5,
+            25 + Math.random() * 5,
             height,
             color
         );
@@ -206,100 +243,165 @@ function createPalm(x, z) {
         {
             height: 7,
             diameterTop: 0.25,
-            diameterBottom: 0.5
+            diameterBottom: 0.45
         },
         scene
     );
 
     trunk.position.set(x, 3.5, z);
-    trunk.material = palmMat;
+    trunk.material = materials.palm;
 
     for (let i = 0; i < 7; i++) {
-
         const angle = i * Math.PI * 2 / 7;
 
         const leaf = BABYLON.MeshBuilder.CreateBox(
             "palmLeaf",
             {
-                width: 0.5,
+                width: 0.45,
                 height: 0.12,
-                depth: 5
+                depth: 4.5
             },
             scene
         );
 
         leaf.position.set(
-            x + Math.sin(angle) * 1.8,
+            x + Math.sin(angle) * 1.5,
             7,
-            z + Math.cos(angle) * 1.8
+            z + Math.cos(angle) * 1.5
         );
 
         leaf.rotation.y = angle;
         leaf.rotation.x = -0.25;
-        leaf.material = leafMat;
+        leaf.material = materials.leaves;
     }
 }
 
-for (let i = -200; i <= 200; i += 30) {
-    createPalm(i, 12);
-    createPalm(i, -12);
+for (let i = -210; i <= 210; i += 30) {
+    createPalm(i, 16);
+    createPalm(i, -16);
 }
 
-// PERSONAGEM
+setLoading(55, "CRIANDO PERSONAGEM...");
 
-const player = new BABYLON.TransformNode(
-    "player",
+// PERSONAGEM HUMANOIDE
+
+const player = new BABYLON.TransformNode("player", scene);
+player.position.set(0, 0, -25);
+
+function createLimb(name, parent, x, y, z, length, diameter, mat) {
+    const pivot = new BABYLON.TransformNode(name + "Pivot", scene);
+    pivot.parent = parent;
+    pivot.position.set(x, y, z);
+
+    const mesh = BABYLON.MeshBuilder.CreateCapsule(
+        name,
+        {
+            height: length,
+            radius: diameter / 2
+        },
+        scene
+    );
+
+    mesh.parent = pivot;
+    mesh.position.y = -length / 2;
+    mesh.material = mat;
+
+    return pivot;
+}
+
+// Tronco
+const torso = BABYLON.MeshBuilder.CreateCapsule(
+    "playerTorso",
+    { height: 1.05, radius: 0.32 },
     scene
 );
 
-const body = BABYLON.MeshBuilder.CreateCapsule(
-    "body",
-    {
-        height: 1.8,
-        radius: 0.35
-    },
-    scene
-);
+torso.parent = player;
+torso.position.y = 1.35;
+torso.material = materials.shirt;
 
-body.position.y = 0.95;
-body.material = playerMat;
-body.parent = player;
-body.checkCollisions = true;
-
+// Cabeça
 const head = BABYLON.MeshBuilder.CreateSphere(
-    "head",
-    {
-        diameter: 0.55
-    },
+    "playerHead",
+    { diameter: 0.48, segments: 12 },
     scene
 );
 
-head.position.y = 2;
-head.material = skinMat;
 head.parent = player;
+head.position.y = 2.12;
+head.material = materials.skin;
 
-player.position.set(0, 0, -10);
+// Pernas
+const leftLeg = createLimb(
+    "leftLeg", player, -0.17, 0.92, 0, 0.9, 0.25, materials.pants
+);
+
+const rightLeg = createLimb(
+    "rightLeg", player, 0.17, 0.92, 0, 0.9, 0.25, materials.pants
+);
+
+// Braços
+const leftArm = createLimb(
+    "leftArm", player, -0.42, 1.65, 0, 0.78, 0.20, materials.shirt
+);
+
+const rightArm = createLimb(
+    "rightArm", player, 0.42, 1.65, 0, 0.78, 0.20, materials.shirt
+);
+
+// Sapatos
+const leftShoe = box(
+    "leftShoe", 0.25, 0.14, 0.38,
+    -0.17, 0.12, 0.08, materials.shoes
+);
+
+leftShoe.parent = player;
+leftShoe.position.set(-0.17, 0.12, 0.08);
+
+const rightShoe = box(
+    "rightShoe", 0.25, 0.14, 0.38,
+    0.17, 0.12, 0.08, materials.shoes
+);
+
+rightShoe.parent = player;
+rightShoe.position.set(0.17, 0.12, 0.08);
+
+// SOMBRA
+const shadow = BABYLON.MeshBuilder.CreateDisc(
+    "playerShadow",
+    { radius: 0.65, tessellation: 24 },
+    scene
+);
+
+shadow.parent = player;
+shadow.rotation.x = Math.PI / 2;
+shadow.position.y = 0.03;
+
+const shadowMat = new BABYLON.StandardMaterial("shadowMat", scene);
+shadowMat.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+shadowMat.alpha = 0.25;
+shadowMat.disableLighting = true;
+shadow.material = shadowMat;
 
 // CONTROLES
 
 const input = {
     x: 0,
     y: 0,
-    sprint: false,
-    jump: false
+    sprint: false
 };
 
 let cameraYaw = 0;
-let cameraPitch = 0.25;
+let cameraPitch = 0.18;
 let verticalVelocity = 0;
 let grounded = true;
+let walkTime = 0;
 
-const speed = 0.12;
-const sprintSpeed = 0.22;
+const normalSpeed = 0.13;
+const runSpeed = 0.23;
 
 function showToast(message) {
     const toast = document.getElementById("toast");
-
     toast.textContent = message;
     toast.classList.add("visible");
 
@@ -318,14 +420,11 @@ let joystickPointer = null;
 function updateJoystick(event) {
     const rect = joystick.getBoundingClientRect();
 
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-
-    let dx = event.clientX - centerX;
-    let dy = event.clientY - centerY;
+    let dx = event.clientX - (rect.left + rect.width / 2);
+    let dy = event.clientY - (rect.top + rect.height / 2);
 
     const max = 38;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+    const distance = Math.hypot(dx, dy);
 
     if (distance > max) {
         dx = dx / distance * max;
@@ -357,14 +456,13 @@ function releaseJoystick(event) {
     joystickPointer = null;
     input.x = 0;
     input.y = 0;
-
     knob.style.transform = "translate(-50%, -50%)";
 }
 
 joystick.addEventListener("pointerup", releaseJoystick);
 joystick.addEventListener("pointercancel", releaseJoystick);
 
-// CÂMERA PELO TOQUE
+// CÂMERA PELO DEDO
 
 const lookArea = document.getElementById("lookArea");
 
@@ -385,12 +483,12 @@ lookArea.addEventListener("pointermove", event => {
     const dx = event.clientX - lastX;
     const dy = event.clientY - lastY;
 
-    cameraYaw += dx * 0.005;
-    cameraPitch += dy * 0.003;
+    cameraYaw += dx * 0.004;
+    cameraPitch += dy * 0.002;
 
     cameraPitch = Math.max(
-        -0.15,
-        Math.min(0.8, cameraPitch)
+        -0.05,
+        Math.min(0.65, cameraPitch)
     );
 
     lastX = event.clientX;
@@ -398,9 +496,7 @@ lookArea.addEventListener("pointermove", event => {
 });
 
 function releaseLook(event) {
-    if (event.pointerId === lookPointer) {
-        lookPointer = null;
-    }
+    if (event.pointerId === lookPointer) lookPointer = null;
 }
 
 lookArea.addEventListener("pointerup", releaseLook);
@@ -428,7 +524,7 @@ document.getElementById("jumpButton").addEventListener(
     "pointerdown",
     () => {
         if (grounded) {
-            verticalVelocity = 0.22;
+            verticalVelocity = 0.20;
             grounded = false;
         }
     }
@@ -436,23 +532,16 @@ document.getElementById("jumpButton").addEventListener(
 
 document.getElementById("interactButton").addEventListener(
     "pointerdown",
-    () => {
-        showToast("Nenhuma interação próxima.");
-    }
+    () => showToast("Nenhuma interação próxima.")
 );
 
-// MOVIMENTAÇÃO E CÂMERA
+// MOVIMENTO
 
-function updatePlayer() {
-
-    const moving = Math.abs(input.x) + Math.abs(input.y) > 0.05;
+function updatePlayer(delta) {
+    const moving =
+        Math.abs(input.x) + Math.abs(input.y) > 0.08;
 
     if (moving) {
-
-        const currentSpeed = input.sprint
-            ? sprintSpeed
-            : speed;
-
         const forward = new BABYLON.Vector3(
             Math.sin(cameraYaw),
             0,
@@ -465,25 +554,40 @@ function updatePlayer() {
             -Math.sin(cameraYaw)
         );
 
-        const movement = forward.scale(-input.y)
+        const direction = forward.scale(-input.y)
             .add(right.scale(input.x));
 
-        movement.normalize();
+        direction.normalize();
+
+        const velocity = input.sprint
+            ? runSpeed
+            : normalSpeed;
 
         player.position.addInPlace(
-            movement.scale(currentSpeed)
+            direction.scale(velocity * delta)
         );
 
         player.rotation.y = Math.atan2(
-            movement.x,
-            movement.z
+            direction.x,
+            direction.z
         );
+
+        walkTime += delta * (input.sprint ? 0.018 : 0.012);
     }
 
-    // SALTO E GRAVIDADE
+    // Animação dos braços e pernas
+    const swing = moving ? Math.sin(walkTime) * 0.65 : 0;
 
-    verticalVelocity -= 0.009;
-    player.position.y += verticalVelocity;
+    leftLeg.rotation.x = swing;
+    rightLeg.rotation.x = -swing;
+    leftArm.rotation.x = -swing * 0.7;
+    rightArm.rotation.x = swing * 0.7;
+
+    torso.position.y = 1.35 + (moving ? Math.abs(swing) * 0.025 : 0);
+
+    // Gravidade e salto
+    verticalVelocity -= 0.009 * delta;
+    player.position.y += verticalVelocity * delta;
 
     if (player.position.y <= 0) {
         player.position.y = 0;
@@ -491,38 +595,25 @@ function updatePlayer() {
         grounded = true;
     }
 
-    // LIMITES DA CIDADE
+    player.position.x = Math.max(-235, Math.min(235, player.position.x));
+    player.position.z = Math.max(-235, Math.min(235, player.position.z));
 
-    player.position.x = Math.max(
-        -240,
-        Math.min(240, player.position.x)
-    );
-
-    player.position.z = Math.max(
-        -240,
-        Math.min(240, player.position.z)
-    );
-
-    // CÂMERA TERCEIRA PESSOA
-
-    const distance = 8;
-
+    // Câmera afastada, estilo terceira pessoa
     const target = new BABYLON.Vector3(
         player.position.x,
-        player.position.y + 1.4,
+        player.position.y + 1.35,
         player.position.z
     );
 
+    const distance = 8.5;
+
     const offset = new BABYLON.Vector3(
         Math.sin(cameraYaw) * distance,
-        3 + cameraPitch * 5,
-        Math.cos(cameraYaw) * distance
+        3.2 + cameraPitch * 4,
+        -Math.cos(cameraYaw) * distance
     );
 
-    camera.position.copyFrom(
-        target.subtract(offset)
-    );
-
+    camera.position.copyFrom(target.add(offset));
     camera.setTarget(target);
 
     document.getElementById("speed").textContent =
@@ -535,11 +626,11 @@ const mapCanvas = document.getElementById("mapCanvas");
 const mapCtx = mapCanvas.getContext("2d");
 
 function drawMap() {
-    mapCtx.fillStyle = "#303b40";
+    mapCtx.fillStyle = "#26343b";
     mapCtx.fillRect(0, 0, 160, 160);
 
-    mapCtx.strokeStyle = "#a5a5a5";
-    mapCtx.lineWidth = 8;
+    mapCtx.strokeStyle = "#a8a8a8";
+    mapCtx.lineWidth = 7;
 
     for (let i = 20; i < 160; i += 40) {
         mapCtx.beginPath();
@@ -553,22 +644,14 @@ function drawMap() {
         mapCtx.stroke();
     }
 
-    const px = 80 + player.position.x * 0.25;
-    const py = 80 + player.position.z * 0.25;
+    const px = 80 + player.position.x * 0.2;
+    const py = 80 + player.position.z * 0.2;
 
-    mapCtx.fillStyle = "#43ff89";
+    mapCtx.fillStyle = "#42ff91";
     mapCtx.beginPath();
     mapCtx.arc(px, py, 5, 0, Math.PI * 2);
     mapCtx.fill();
 }
-
-// LOOP DO JOGO
-
-engine.runRenderLoop(() => {
-    updatePlayer();
-    drawMap();
-    scene.render();
-});
 
 // REDIMENSIONAMENTO
 
@@ -576,4 +659,27 @@ window.addEventListener("resize", () => {
     engine.resize();
 });
 
-showToast("Bem-vindo a Los Angeles!");
+// LOOP
+
+let lastFrame = performance.now();
+
+engine.runRenderLoop(() => {
+    const now = performance.now();
+    const delta = Math.min((now - lastFrame) / 16.67, 2);
+    lastFrame = now;
+
+    updatePlayer(delta);
+    drawMap();
+    scene.render();
+});
+
+// CARREGAMENTO
+
+setLoading(72, "FINALIZANDO CENÁRIO...");
+
+scene.executeWhenReady(() => {
+    setLoading(92, "PREPARANDO SUA ENTRADA...");
+    finishLoading();
+});
+
+setLoading(80, "CARREGANDO TEXTURAS E ILUMINAÇÃO...");
