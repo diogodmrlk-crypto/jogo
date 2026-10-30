@@ -11,17 +11,27 @@ permissions:
 
 jobs:
   build:
+    name: Build LA RP for iOS
     runs-on: macos-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Show project files
+        run: |
+          echo "Arquivos do projeto:"
+          find . -maxdepth 4 -type f
+
       - name: Install XcodeGen
-        run: brew install xcodegen
+        run: |
+          brew install xcodegen
+          xcodegen --version
 
       - name: Generate Xcode project
-        run: xcodegen generate
+        run: |
+          xcodegen generate
+          ls -la
 
       - name: Build app without signing
         run: |
@@ -36,14 +46,33 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             build
 
+      - name: Locate generated app
+        id: locate
+        run: |
+          APP_PATH="$(find build/Build/Products/Release-iphoneos \
+            -maxdepth 1 -type d -name '*.app' -print -quit)"
+
+          if [ -z "$APP_PATH" ]; then
+            echo "ERRO: nenhum aplicativo .app foi encontrado."
+            ls -la build/Build/Products/Release-iphoneos/
+            exit 1
+          fi
+
+          echo "Aplicativo encontrado: $APP_PATH"
+          echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
+
       - name: Package unsigned IPA
         run: |
-          APP_PATH="build/Build/Products/Release-iphoneos/LARP.app"
-          test -d "$APP_PATH"
+          APP_PATH="${{ steps.locate.outputs.app_path }}"
+
           mkdir -p output/Payload
           cp -R "$APP_PATH" output/Payload/
+
           cd output
           /usr/bin/zip -qry LA-RP-unsigned.ipa Payload
+
+          echo "IPA criado:"
+          ls -lh LA-RP-unsigned.ipa
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
