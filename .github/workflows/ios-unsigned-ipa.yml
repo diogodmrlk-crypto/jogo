@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    name: Build and Package LA RP
+    name: Build LA RP
     runs-on: macos-latest
 
     steps:
@@ -21,10 +21,10 @@ jobs:
         with:
           ref: html-to-ts-generator
 
-      # 2. Conferir arquivos
-      - name: Check project structure
+      # 2. Verificar arquivos de origem
+      - name: Check game files
         run: |
-          echo "Verificando estrutura..."
+          set -e
 
           test -f project.yml
           test -f LA_RP/App.swift
@@ -33,7 +33,7 @@ jobs:
           test -f LA_RP/Web/style.css
           test -f LA_RP/Web/game.js
 
-          echo "Todos os arquivos foram encontrados!"
+          echo "Todos os arquivos encontrados!"
 
       # 3. Instalar XcodeGen
       - name: Install XcodeGen
@@ -45,7 +45,6 @@ jobs:
       - name: Generate Xcode project
         run: |
           xcodegen generate
-          ls -la LARP.xcodeproj
 
       # 5. Compilar aplicativo
       - name: Build iOS application
@@ -63,7 +62,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             build
 
-      # 6. Encontrar aplicativo
+      # 6. Localizar aplicativo
       - name: Locate application
         id: locate
         run: |
@@ -75,26 +74,41 @@ jobs:
             exit 1
           fi
 
-          echo "Aplicativo: $APP_PATH"
+          echo "Aplicativo encontrado: $APP_PATH"
           echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
 
-      # 7. Verificar arquivos web dentro do aplicativo
-      - name: Verify game files inside app
+      # 7. COPIAR HTML, CSS E JS PARA O APP
+      - name: Copy game web files
         run: |
+          set -e
+
           APP_PATH="${{ steps.locate.outputs.app_path }}"
 
-          echo "Conteúdo do aplicativo:"
-          find "$APP_PATH" -maxdepth 4 -type f
+          mkdir -p "$APP_PATH/Web"
+
+          cp -R LA_RP/Web/. "$APP_PATH/Web/"
+
+          echo "Arquivos copiados:"
+          find "$APP_PATH/Web" -maxdepth 2 -type f
+
+      # 8. Verificar arquivos dentro do aplicativo
+      - name: Verify game files
+        run: |
+          set -e
+
+          APP_PATH="${{ steps.locate.outputs.app_path }}"
 
           test -f "$APP_PATH/Web/index.html"
           test -f "$APP_PATH/Web/style.css"
           test -f "$APP_PATH/Web/game.js"
 
-          echo "SUCESSO: HTML, CSS e JS estão dentro do aplicativo!"
+          echo "SUCESSO: os três arquivos estão dentro do APP!"
 
-      # 8. Criar IPA
+      # 9. Criar IPA
       - name: Package IPA
         run: |
+          set -e
+
           APP_PATH="${{ steps.locate.outputs.app_path }}"
 
           mkdir -p output/Payload
@@ -105,12 +119,9 @@ jobs:
 
           zip -qry LA-RP-unsigned.ipa Payload
 
-          test -f LA-RP-unsigned.ipa
-
-          echo "IPA criado com sucesso:"
           ls -lh LA-RP-unsigned.ipa
 
-      # 9. Publicar artefato
+      # 10. Publicar artefato
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
