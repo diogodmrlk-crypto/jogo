@@ -1,32 +1,57 @@
-name: Build unsigned iOS IPA
+name: Build LA RP iOS
+
 on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - html-to-ts-generator
+
 permissions:
   contents: read
+
 jobs:
   build:
-    name: Build LA RP for iOS
+    name: Build and Package LA RP
     runs-on: macos-latest
+
     steps:
+      # 1. Baixar o repositório
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Show project files
+        with:
+          ref: html-to-ts-generator
+
+      # 2. Conferir arquivos
+      - name: Check project structure
         run: |
-          echo "Arquivos do projeto:"
-          find . -maxdepth 4 -type f
+          echo "Verificando estrutura..."
+
+          test -f project.yml
+          test -f LA_RP/App.swift
+          test -f LA_RP/GameView.swift
+          test -f LA_RP/Web/index.html
+          test -f LA_RP/Web/style.css
+          test -f LA_RP/Web/game.js
+
+          echo "Todos os arquivos foram encontrados!"
+
+      # 3. Instalar XcodeGen
       - name: Install XcodeGen
         run: |
           brew install xcodegen
           xcodegen --version
+
+      # 4. Gerar projeto Xcode
       - name: Generate Xcode project
         run: |
           xcodegen generate
-          ls -la
-      - name: Build app without signing
+          ls -la LARP.xcodeproj
+
+      # 5. Compilar aplicativo
+      - name: Build iOS application
         run: |
+          set -o pipefail
+
           xcodebuild \
             -project LARP.xcodeproj \
             -scheme LARP \
@@ -37,28 +62,56 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             build
-      - name: Locate generated app
+
+      # 6. Encontrar aplicativo
+      - name: Locate application
         id: locate
         run: |
           APP_PATH="$(find build/Build/Products/Release-iphoneos \
             -maxdepth 1 -type d -name '*.app' -print -quit)"
+
           if [ -z "$APP_PATH" ]; then
-            echo "ERRO: nenhum aplicativo .app foi encontrado."
-            ls -la build/Build/Products/Release-iphoneos/
+            echo "ERRO: aplicativo não encontrado."
             exit 1
           fi
-          echo "Aplicativo encontrado: $APP_PATH"
+
+          echo "Aplicativo: $APP_PATH"
           echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
-      - name: Package unsigned IPA
+
+      # 7. Verificar arquivos web dentro do aplicativo
+      - name: Verify game files inside app
         run: |
           APP_PATH="${{ steps.locate.outputs.app_path }}"
+
+          echo "Conteúdo do aplicativo:"
+          find "$APP_PATH" -maxdepth 4 -type f
+
+          test -f "$APP_PATH/Web/index.html"
+          test -f "$APP_PATH/Web/style.css"
+          test -f "$APP_PATH/Web/game.js"
+
+          echo "SUCESSO: HTML, CSS e JS estão dentro do aplicativo!"
+
+      # 8. Criar IPA
+      - name: Package IPA
+        run: |
+          APP_PATH="${{ steps.locate.outputs.app_path }}"
+
           mkdir -p output/Payload
+
           cp -R "$APP_PATH" output/Payload/
+
           cd output
-          /usr/bin/zip -qry LA-RP-unsigned.ipa Payload
-          echo "IPA criado:"
+
+          zip -qry LA-RP-unsigned.ipa Payload
+
+          test -f LA-RP-unsigned.ipa
+
+          echo "IPA criado com sucesso:"
           ls -lh LA-RP-unsigned.ipa
-      - name: Upload IPA artifact
+
+      # 9. Publicar artefato
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: LA-RP-Unsigned-IPA
