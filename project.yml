@@ -14,10 +14,14 @@ targets:
       - path: LA_RP
         excludes:
           - Web
+          - Info.plist
 
     resources:
       - path: LA_RP/Web
         type: folder
+
+    info:
+      path: LA_RP/Info.plist
 
     settings:
       base:
@@ -27,6 +31,6 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: "LA RP"
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIRequiresFullScreen: YES
         CODE_SIGNING_ALLOWED: NO
         CODE_SIGNING_REQUIRED: NO
